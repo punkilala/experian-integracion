@@ -1,4 +1,4 @@
-package bs.experian.integracion.infrastructure.constants;
+package bs.experian.integracion.domain.constants;
 
 public final class ExperianConstats {
 	 private ExperianConstats() {

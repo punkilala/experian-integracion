@@ -6,8 +6,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import bs.experian.integracion.application.casosuso.CrearSolicitudCasoUso;
-import bs.experian.integracion.application.casosuso.ReenviarEventosCasoUso;
+import bs.experian.integracion.application.CrearSolicitudService;
+import bs.experian.integracion.application.DescargarDocumentosService;
+import bs.experian.integracion.application.RecepcionEventosService;
 import bs.experian.integracion.infrastructure.dto.orquestador.DescargaDocumentoRequest;
 import bs.experian.integracion.infrastructure.dto.orquestador.NuevaSolicitudRequest;
 import bs.experian.integracion.infrastructure.dto.orquestador.NuevaSolicitudResponse;
@@ -18,12 +19,13 @@ import lombok.RequiredArgsConstructor;
 @RequestMapping("/integracion")
 @RequiredArgsConstructor
 public class IntegracionControllers {
-	private final CrearSolicitudCasoUso crearSolicitudCasoUso;
-	private final ReenviarEventosCasoUso reenviarEventosCasoUso;
+	private final CrearSolicitudService crearSolicitudService;
+	private final RecepcionEventosService recepcionEventosService;
+	private final DescargarDocumentosService descargarDocumentosService;
 	
 	@PostMapping("/experian/solicitudes")
 	public ResponseEntity<NuevaSolicitudResponse> crearSolicitud (@RequestBody NuevaSolicitudRequest nuevaSolicitudRequest){
-		return ResponseEntity.ok(crearSolicitudCasoUso.ejecutar(nuevaSolicitudRequest));	
+		return ResponseEntity.ok(crearSolicitudService.ejecutar(nuevaSolicitudRequest));	
 	}
 	
 	@PostMapping("/experian/eventos")
@@ -34,15 +36,14 @@ public class IntegracionControllers {
             return ResponseEntity.badRequest().build();
         }
 
-        reenviarEventosCasoUso.ejecutar(request);
+        recepcionEventosService.ejecutar(request);
         
         return ResponseEntity.ok().build();
     }
 	
 	@PostMapping("/experian/descarga-documento")
 	public ResponseEntity<Void> descargarDocmento(@RequestBody DescargaDocumentoRequest request){
-		
-		
+		descargarDocumentosService.descargarDocumento(request);
 		return ResponseEntity.ok().build();
 		
 	}

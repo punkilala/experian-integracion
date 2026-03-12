@@ -1,4 +1,4 @@
-package bs.experian.integracion.domain;
+package bs.experian.integracion.domain.enums;
 
 public final class DomainEnum {
 

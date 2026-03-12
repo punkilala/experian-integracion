@@ -1,24 +1,26 @@
-package bs.experian.integracion.application.casosuso;
+package bs.experian.integracion.application;
 
-import static bs.experian.integracion.infrastructure.constants.ExperianConstats.BELENDER_PF;
-import static bs.experian.integracion.infrastructure.constants.ExperianConstats.BELENDER_PJ;
+import static bs.experian.integracion.domain.constants.ExperianConstats.BELENDER_PF;
+import static bs.experian.integracion.domain.constants.ExperianConstats.BELENDER_PJ;
 
 import org.springframework.stereotype.Service;
 
-import bs.experian.integracion.application.proveedor.CreadorSolicitudProveedor;
 import bs.experian.integracion.infrastructure.dto.orquestador.NuevaSolicitudRequest;
 import bs.experian.integracion.infrastructure.dto.orquestador.NuevaSolicitudResponse;
 import bs.experian.integracion.infrastructure.dto.proveedor.ExperianSolicitudPFRequest;
 import bs.experian.integracion.infrastructure.dto.proveedor.ExperianSolicitudPJRequest;
 import bs.experian.integracion.infrastructure.dto.proveedor.ExperianSolicitudRequest;
 import bs.experian.integracion.infrastructure.mappers.ExperianMapper;
+import bs.experian.integracion.infrastructure.webclient.ExperianSolicitudClient;
 import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
-public class CrearSolicitudCasoUso {
-	private final CreadorSolicitudProveedor creadorSolicitudProveedor;
+public class CrearSolicitudService {
 	private final ExperianMapper experianMapper;
+	
+	private final ExperianSolicitudClient experianSolicitudClient;
+	
 	
 	public NuevaSolicitudResponse ejecutar (NuevaSolicitudRequest nuevaSolicitudRequest) {
 		//mapear request experian
@@ -41,7 +43,7 @@ public class CrearSolicitudCasoUso {
 		            "Tipo persona no soportado: " + nuevaSolicitudRequest.getPersonCategory()
 		    );
 		}
-		return creadorSolicitudProveedor.crearSolicitud(experianSolicitudRequest);
+		return experianSolicitudClient.crearSolicitud(experianSolicitudRequest);
 		
 	}
 }

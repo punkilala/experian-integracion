@@ -2,7 +2,7 @@ package bs.experian.integracion.infrastructure.dto.orquestador;
 
 
 
-import bs.experian.integracion.domain.DomainEnum;
+import bs.experian.integracion.domain.enums.DomainEnum;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;

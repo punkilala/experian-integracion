@@ -7,7 +7,6 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
-import bs.experian.integracion.application.proveedor.CreadorSolicitudProveedor;
 import bs.experian.integracion.infrastructure.config.IntegracionProperties;
 import bs.experian.integracion.infrastructure.dto.orquestador.NuevaSolicitudResponse;
 import bs.experian.integracion.infrastructure.dto.proveedor.ExperianSolicitudPFRequest;
@@ -18,7 +17,7 @@ import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
-public class ExperianSolicitudClient implements CreadorSolicitudProveedor{
+public class ExperianSolicitudClient {
 	
 	private final IntegracionProperties props;
 	private final WebClient webClient;
