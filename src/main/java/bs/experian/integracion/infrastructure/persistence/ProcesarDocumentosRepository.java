@@ -1,6 +1,7 @@
 package bs.experian.integracion.infrastructure.persistence;
 
 import java.time.OffsetDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.Map;
 import java.util.Optional;
 
@@ -20,6 +21,7 @@ import bs.experian.integracion.infrastructure.persistence.entity.DescargaDocumen
 import bs.experian.integracion.infrastructure.persistence.repository.ColaCustodiaDocumentosRepository;
 import bs.experian.integracion.infrastructure.persistence.repository.ColaDescargaDocumentosRepository;
 import bs.experian.integracion.infrastructure.persistence.repository.DescargaDocumentoErrorRepository;
+import bs.experian.integracion.infrastructure.utils.IntegracionUtils;
 import lombok.RequiredArgsConstructor;
 
 @Repository
@@ -142,7 +144,8 @@ public class ProcesarDocumentosRepository {
 	 */
 	public void reprogramarDescarga(ColaDescargaDocumentosEntity entity) {
 		
-
+		 OffsetDateTime siguiente = OffsetDateTime.now().plus(1, ChronoUnit.HOURS);
+	    entity.setSiguienteReintento(siguiente);
 		entity.setEstadoCola("PENDIENTE");
 		entity.setEnProcesoDesde(null);
 
@@ -153,15 +156,15 @@ public class ProcesarDocumentosRepository {
 	 * guardar errores de descarga de documentos
 	 */
 	@Transactional
-	public void registrarErrorDescarga(ColaDescargaDocumentosEntity doc, String origen) {
+	public void registrarErrorDescarga(ColaDescargaDocumentosEntity doc, Exception e) {
 		DescargaDocumentoErrorEntity entity = new DescargaDocumentoErrorEntity();
 		
 		entity.setQueryId(doc.getQueryId());
 		entity.setDocumentCode(doc.getDocumentCode());
 		entity.setIntento(doc.getIntentos());
 		entity.setTipoDocumento(doc.getTipo());
-		entity.setOrigenError(origen);
-		entity.setMensajeError(doc.getErrorMensaje());
+		entity.setOrigenError(e.getMessage());
+		entity.setMensajeError(IntegracionUtils.stackTraceToString(e, 12));
 		entity.setFechaError(OffsetDateTime.now());
 		
 		descargaDocumentoErrorRepository.save(entity);
@@ -183,19 +186,21 @@ public class ProcesarDocumentosRepository {
 					doc.getDocumentCode()
 				));
 		
-		//insertar pdf en cola custodia
-		ColaCustodiaDocumentosEntity  custodiaEntity = new ColaCustodiaDocumentosEntity(
-				doc.getQueryId(),
-				doc.getDocumentCode(),
-				"BLOQUEADO",
-				0,
-				null,
-				null,
-				OffsetDateTime.now(),
-				doc.getPdfDocumento()
-		);
+		//insertar pdf en cola custodia si se ha descargado
+		if(null != doc.getPdfDocumento()) {
+			ColaCustodiaDocumentosEntity  custodiaEntity = new ColaCustodiaDocumentosEntity(
+					doc.getQueryId(),
+					doc.getDocumentCode(),
+					"BLOQUEADO",
+					0,
+					null,
+					null,
+					OffsetDateTime.now(),
+					doc.getPdfDocumento()
+			);
+			colaCustodiaDocumentosRepository.save(custodiaEntity);
+		}
 		
-		colaCustodiaDocumentosRepository.save(custodiaEntity);
 	}
 
 

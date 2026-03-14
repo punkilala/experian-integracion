@@ -1,7 +1,5 @@
 package bs.experian.integracion.infrastructure.worker;
 
-import java.time.OffsetDateTime;
-import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 
 import org.springframework.stereotype.Component;
@@ -18,11 +16,12 @@ import bs.experian.integracion.infrastructure.webclient.DescargarDocumentoClient
 import bs.experian.integracion.infrastructure.webclient.ExperianEventosClient;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import static bs.experian.integracion.domain.constants.ExperianConstats.*;
 
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class ProcesadorDescargaDocumento {
+public class ProcesadorWorker {
 
 	
 	private final ProcesarDocumentosRepository procesarDocumentosRepository;
@@ -32,7 +31,10 @@ public class ProcesadorDescargaDocumento {
 	
 	private static final int MAX_INTENTOS = 3;
 
-	
+	/**
+	 * metodo principial de gestión de descargar
+	 * @param documento
+	 */
 	public void procesar (ColaDescargaDocumentosEntity documento) {
 		
 		try {	
@@ -44,34 +46,54 @@ public class ProcesadorDescargaDocumento {
 	
 	    } catch (Exception e) {
 	        log.warn("ERR INTEGRACION-EXPERIAN Fallo descarga {} - {}: {}",  documento.getQueryId(), documento.getDocumentCode(), e.getMessage());
-	        documento.setErrorMensaje(e.getMessage());
-	        gestionarIntentos(documento);
-	        procesarDocumentosRepository.registrarErrorDescarga(documento, ProcesadorDescargaDocumento.class.getName());
+	        procesarDocumentosRepository.reprogramarDescarga(documento);
+	        procesarDocumentosRepository.registrarErrorDescarga(documento, e);
 	    }
 	}
 	
+	/**
+	 * Descargar documentos si proceder
+	 * @param doc
+	 */
 	public void descargarContenidoSiEsNecesario (ColaDescargaDocumentosEntity doc) {
 		if (doc.getPdfDocumento() == null) {
-			doc.setTipo("PDF");
-            byte[] pdf = descargarDocumentoClient.descargar(doc.getPdfUrl(), byte[].class);
-            doc.setPdfDocumento(pdf);
-            procesarDocumentosRepository.guardarContenido(doc);
+			try {
+	            doc.setTipo(PDF);
+	            byte[] pdf = descargarDocumentoClient.descargar(doc.getPdfUrl(), byte[].class);
+	            doc.setPdfDocumento(pdf);
+	            procesarDocumentosRepository.guardarContenido(doc);
+
+	        } catch (Exception e) {
+	            doc.setErrorMensaje(e.getMessage());
+	            procesarDocumentosRepository.registrarErrorDescarga(doc, e);
+	        }
         }
 
         if (doc.getJsonDocumento() == null) {
-        	doc.setTipo("JSON");
-            String json = descargarDocumentoClient.descargar(doc.getJsonUrl(), String.class);
-            try {
-				String jsonBonito = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(objectMapper.readTree(json));
-				doc.setJsonDocumento(jsonBonito);
-			} catch (JsonProcessingException e) {
-				doc.setJsonDocumento(json);
-			} 
-           
-            procesarDocumentosRepository.guardarContenido(doc);
+        	String json = "";
+        	try {
+                doc.setTipo(JSON);
+                json = descargarDocumentoClient.descargar(doc.getJsonUrl(), String.class);
+                String jsonBonito = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(objectMapper.readTree(json));
+                doc.setJsonDocumento(jsonBonito);
+                procesarDocumentosRepository.guardarContenido(doc);
+        	} catch (JsonProcessingException e) {
+        	    // JSON inválido pero descargado: guardamos el original
+        	    doc.setJsonDocumento(json);
+        	    procesarDocumentosRepository.guardarContenido(doc);
+            } catch (Exception e) {
+                procesarDocumentosRepository.registrarErrorDescarga(doc, e);
+            }
+        	if( null == doc.getPdfDocumento() || null == doc.getJsonDocumento()) {
+        		gestionarIntentos(doc);
+        	}
         }
 	}
-		
+	
+	/**
+	 * politica de reintentos para no reintentar la descarga indefinidamente
+	 * @param doc
+	 */
 	private void gestionarIntentos(ColaDescargaDocumentosEntity doc) {
 
         doc.setIntentos(doc.getIntentos()  +1);
@@ -79,20 +101,23 @@ public class ProcesadorDescargaDocumento {
         	notificarDescargaAOrquestador(doc);
             return;
         }
-        
-        OffsetDateTime siguiente = OffsetDateTime.now().plus(1, ChronoUnit.HOURS);
-        doc.setSiguienteReintento(siguiente);
-
         procesarDocumentosRepository.reprogramarDescarga(doc);
     }
 	
+	
+	/**
+	 * Reenvio al orquestador el resultado de la descarga;
+	 * @param doc
+	 */
 	private void notificarDescargaAOrquestador (ColaDescargaDocumentosEntity doc) {
 		
 		boolean resultadoDescarga =  doc.getPdfDocumento() != null && doc.getJsonDocumento() != null;
+		doc.setTipo(REENVIO);
 		
 		DescargaDocumentoResponse descargaDocumentoResponse = DescargaDocumentoResponse.builder()
-				.status("documento_descargado")
-				.substatus(resultadoDescarga ? "OK" : "KO")
+				.documentCode(doc.getDocumentCode())
+				.status(STATUS_DOCUDMENTO_DESCARGADO)
+				.substatus(resultadoDescarga ? OK : KO)
 				.pdfDocument(doc.getPdfDocumento() != null)
 				.jsonDocument(doc.getJsonDocumento())
 				.build();			
@@ -101,14 +126,31 @@ public class ProcesadorDescargaDocumento {
 		
 		ExperianWebhookEvent event = new ExperianWebhookEvent();
 		event.setQueryId(doc.getQueryId());
-		event.setNotificationId(UUID.randomUUID().toString());
-		event.setEventType("DocumentoDescargado");
+		event.setNotificationId("INTEGRACION-" + UUID.randomUUID().toString());
+		event.setEventType(TYPE_DOCUDMENTO_DESCARGADO);
 		event.setEventData(evenData);
 		
 		experianEventosClient.reenviarEvento(event);
 		procesarDocumentosRepository.borrarColaWorker(doc);
 
 	}
+	
+	/**
+	 * registrar error inesperado en la ejecucion del worker
+	 * @param e
+	 * @param origen
+	 */
+	public void gestionErrorWorker (Exception e) {
+		ColaDescargaDocumentosEntity doc = new ColaDescargaDocumentosEntity();
+		doc.setQueryId(UNDEFINED);
+		doc.setDocumentCode(UNDEFINED);
+		doc.setIntentos(0);
+		doc.setTipo(UNDEFINED);
+		
+		procesarDocumentosRepository.registrarErrorDescarga(doc, e);
+	}
+	
+	
 
   
 
