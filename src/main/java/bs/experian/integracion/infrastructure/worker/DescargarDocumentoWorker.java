@@ -28,6 +28,7 @@ public class DescargarDocumentoWorker {
 	
 	@Scheduled(fixedDelayString = "15000")
 	public void descargarDocumento() {
+		//obsoleto uso kafka
 		System.out.println("inicio worker"); 
 		ColaDescargaDocumentosEntity documento = null;
 		
