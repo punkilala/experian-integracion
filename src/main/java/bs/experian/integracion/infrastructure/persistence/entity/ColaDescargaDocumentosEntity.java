@@ -29,6 +29,9 @@ public class ColaDescargaDocumentosEntity {
 	    @Id
 	    @Column(name = "DOCUMENT_CODE", length = 100, nullable = false)
 	    private String documentCode;
+	    
+	    @Column(name = "NOTIFICATION_ID", length = 100, nullable = false)
+		private String notificationId;
 
 	    @Column(name = "PDF_URL", length = 1000, nullable = false)
 	    private String pdfUrl;
@@ -53,15 +56,16 @@ public class ColaDescargaDocumentosEntity {
 	    @Column(name = "FECHA_ALTA", nullable = false)
 	    private OffsetDateTime fechaAlta;
 
-	    @Column(name = "EN_PROCESO_DESDE")
-	    private OffsetDateTime enProcesoDesde;
+	    @Column(name = "PROCESO_DESDE")
+	    private OffsetDateTime procesoDesde;
 
-	    @Column(name = "SIGUIENTE_REINTENTO")
-	    private OffsetDateTime siguienteReintento;
+	    @Column(name = "NEXT_RETRY")
+	    private OffsetDateTime nextRetry;
 	    
-	    @Column(name = "TIPO", length = 8)
-	    private String tipo;
-
-	    @Column(name = "ERROR_MENSAJE", length = 4000)
+	    @Column(name = "FASE", length = 50)
+	    private String fase;
+	    
+	    @Lob
+	    @Column(name = "ERROR_MENSAJE")
 	    private String errorMensaje;
 }

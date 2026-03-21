@@ -2,19 +2,17 @@ package bs.experian.integracion.infrastructure.persistence;
 
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
-import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import bs.experian.integracion.domain.model.DescargaDocumentoModel;
-import bs.experian.integracion.infrastructure.exceptions.AgoraException;
 import bs.experian.integracion.infrastructure.mappers.DomainMapper;
 import bs.experian.integracion.infrastructure.persistence.entity.ColaCustodiaDocumentosEntity;
+import bs.experian.integracion.infrastructure.persistence.entity.ColaCustodiaDocumentosPK;
 import bs.experian.integracion.infrastructure.persistence.entity.ColaDescargaDocumentosEntity;
 import bs.experian.integracion.infrastructure.persistence.entity.ColaDescargaDocumentosPK;
 import bs.experian.integracion.infrastructure.persistence.entity.DescargaDocumentoErrorEntity;
@@ -34,22 +32,27 @@ public class ProcesarDocumentosRepository {
 	private final DomainMapper domainMapper;
 	
 	/**
-	 * encolar documento a descargar
+	 * encolar documento a descargar si no existe uno ya con el mismo nootificationId
 	 * @param request
 	 */
 	public void encolarDocumento(DescargaDocumentoModel model) {
-
-        ColaDescargaDocumentosEntity entity = domainMapper.descargaDocumentoModelToColaDescargaDocumentosEntity(model);
-
-        entity.setEstadoCola("PENDIENTE");
-        entity.setIntentos(0);
-        entity.setFechaAlta(OffsetDateTime.now());
-
-        try {
-        	colaDescargaDocumentosRepository.save(entity);
-        } catch (DataIntegrityViolationException e) {
-            throw new AgoraException(HttpStatus.INSUFFICIENT_STORAGE.value(), "no se puede procesar descarga", 
-            		Map.of("origen", "bdd", "valor", e.getMessage()));
+		
+        ColaDescargaDocumentosPK pk = new ColaDescargaDocumentosPK(
+        			model.getQueryId(),
+        			model.getDocumentCode()
+        		);
+        
+        ColaDescargaDocumentosEntity entity = 
+        		colaDescargaDocumentosRepository.findById(pk)
+        			.orElseGet(()-> new ColaDescargaDocumentosEntity());
+        
+        if (!Objects.equals(model.getNotificationId(), entity.getNotificationId())) {
+        	entity = domainMapper.descargaDocumentoModelToColaDescargaDocumentosEntity(model);
+        	entity.setEstadoCola("PENDIENTE");
+            entity.setIntentos(0);
+            entity.setFechaAlta(OffsetDateTime.now());
+            
+            colaDescargaDocumentosRepository.save(entity);  
         }
     }
 	
@@ -65,7 +68,7 @@ public class ProcesarDocumentosRepository {
 	    String sqlUpdate = """
         UPDATE COLA_DESCARGA_DOCUMENTOS
         SET ESTADO_COLA = 'EN_PROCESO',
-            EN_PROCESO_DESDE = ?
+            PROCESO_DESDE = ?
         WHERE QUERY_ID = ?
           AND DOCUMENT_CODE = ?
         """;
@@ -80,9 +83,9 @@ public class ProcesarDocumentosRepository {
                 FROM COLA_DESCARGA_DOCUMENTOS
                 WHERE (
                         (ESTADO_COLA = 'PENDIENTE'
-                         AND (SIGUIENTE_REINTENTO IS NULL OR SIGUIENTE_REINTENTO <= ?))
+                         AND (NEXT_RETRY IS NULL OR NEXT_RETRY <= ?))
                      OR (ESTADO_COLA = 'EN_PROCESO'
-                         AND EN_PROCESO_DESDE < ?)
+                         AND PROCESO_DESDE < ?)
                 )
                 ORDER BY FECHA_ALTA
             )
@@ -106,6 +109,7 @@ public class ProcesarDocumentosRepository {
 	            ColaDescargaDocumentosEntity doc = new ColaDescargaDocumentosEntity();
 	            doc.setQueryId(rs.getString("QUERY_ID"));
 	            doc.setDocumentCode(rs.getString("DOCUMENT_CODE"));
+	            doc.setNotificationId(rs.getString("NOTIFICATION_ID"));
 	            doc.setPdfUrl(rs.getString("PDF_URL"));
 	            doc.setJsonUrl(rs.getString("JSON_URL"));
 	            doc.setEstadoCola(rs.getString("ESTADO_COLA"));
@@ -145,9 +149,9 @@ public class ProcesarDocumentosRepository {
 	public void reprogramarDescarga(ColaDescargaDocumentosEntity entity) {
 		
 		 OffsetDateTime siguiente = OffsetDateTime.now().plus(1, ChronoUnit.HOURS);
-	    entity.setSiguienteReintento(siguiente);
+	    entity.setNextRetry(siguiente);
 		entity.setEstadoCola("PENDIENTE");
-		entity.setEnProcesoDesde(null);
+		entity.setProcesoDesde(null);
 
 	    colaDescargaDocumentosRepository.save(entity);
 	}
@@ -155,14 +159,14 @@ public class ProcesarDocumentosRepository {
 	/**
 	 * guardar errores de descarga de documentos
 	 */
-	@Transactional
 	public void registrarErrorDescarga(ColaDescargaDocumentosEntity doc, Exception e) {
 		DescargaDocumentoErrorEntity entity = new DescargaDocumentoErrorEntity();
 		
 		entity.setQueryId(doc.getQueryId());
 		entity.setDocumentCode(doc.getDocumentCode());
+		entity.setNotificationId(doc.getNotificationId());
 		entity.setIntento(doc.getIntentos());
-		entity.setTipoDocumento(doc.getTipo());
+		entity.setTipoDocumento(doc.getFase());
 		entity.setOrigenError(e.getMessage());
 		entity.setMensajeError(IntegracionUtils.stackTraceToString(e, 12));
 		entity.setFechaError(OffsetDateTime.now());
@@ -175,33 +179,34 @@ public class ProcesarDocumentosRepository {
 	
 	/**
 	 * borrar de cola documento descargado
-	 * Cargar documento para custodiar
 	 * @param doc
 	 */
-	@Transactional
 	public void borrarColaWorker (ColaDescargaDocumentosEntity doc) {
 		// borrar documento cola de descarga
 		colaDescargaDocumentosRepository.deleteById( new ColaDescargaDocumentosPK(
 					doc.getQueryId(),
 					doc.getDocumentCode()
 				));
-		
-		//insertar pdf en cola custodia si se ha descargado
-		if(null != doc.getPdfDocumento()) {
-			ColaCustodiaDocumentosEntity  custodiaEntity = new ColaCustodiaDocumentosEntity(
-					doc.getQueryId(),
-					doc.getDocumentCode(),
-					"BLOQUEADO",
-					0,
-					null,
-					null,
-					OffsetDateTime.now(),
-					doc.getPdfDocumento()
-			);
-			colaCustodiaDocumentosRepository.save(custodiaEntity);
-		}
-		
 	}
-
+	
+	/**
+	 * mandar a custodia el documento pdf
+	 * @param doc
+	 */
+	public void pdfToCustodia (ColaDescargaDocumentosEntity doc) {
+		ColaCustodiaDocumentosEntity  custodiaEntity = new ColaCustodiaDocumentosEntity();
+		custodiaEntity.setQueryId(doc.getQueryId());
+		custodiaEntity.setDocumentCode(doc.getDocumentCode());
+		custodiaEntity.setNotificationId(doc.getNotificationId());
+		custodiaEntity.setEstado("BLOQUEADO");
+		custodiaEntity.setResultadoCustodia(null);
+		custodiaEntity.setIntentos(0);
+		custodiaEntity.setNextRetry(null);
+		custodiaEntity.setProcesoDesde(null);
+		custodiaEntity.setFechaAlta(OffsetDateTime.now());
+		custodiaEntity.setPdfBinario(doc.getPdfDocumento());
+		
+		colaCustodiaDocumentosRepository.save(custodiaEntity);
+	}
 
 }

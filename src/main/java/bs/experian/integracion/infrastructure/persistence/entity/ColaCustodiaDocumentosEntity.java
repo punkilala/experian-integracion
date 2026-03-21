@@ -29,9 +29,15 @@ public class ColaCustodiaDocumentosEntity {
     @Id
     @Column(name = "DOCUMENT_CODE", length = 100, nullable = false)
     private String documentCode;
+    
+    @Column(name = "NOTIFICATION_ID", length = 100, nullable = false)
+	private String notificationId;
 
     @Column(name = "ESTADO", length = 20, nullable = false)
-    private String estado; // BLOQUEADO, AUTORIZADO, IN_PROGRESS
+    private String estado;
+    
+    @Column(name = "RESULTADO_CUSTODIA", length = 20)
+    private String resultadoCustodia;
 
     @Column(name = "INTENTOS", nullable = false)
     private Integer intentos;
@@ -48,5 +54,9 @@ public class ColaCustodiaDocumentosEntity {
     @Lob
     @Column(name = "PDF_BINARIO", nullable = false)
     private byte[] pdfBinario;
+    
+    @Lob
+    @Column(name = "ERROR_MENSAJE")
+    private String errorMensaje;
 
 }

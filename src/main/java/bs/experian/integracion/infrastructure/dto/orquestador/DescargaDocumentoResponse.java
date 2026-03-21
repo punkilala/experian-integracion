@@ -14,7 +14,7 @@ public class DescargaDocumentoResponse {
     private String substatus;
     private String documentCode;
 
-    private boolean pdfDocument;
+    private String pdfDocument;
     private String jsonDocument;
 
 }

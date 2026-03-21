@@ -6,6 +6,7 @@ import org.hibernate.exception.JDBCConnectionException;
 import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.dao.RecoverableDataAccessException;
 import org.springframework.dao.TransientDataAccessResourceException;
+import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.CannotCreateTransactionException;
@@ -48,7 +49,7 @@ public class DescargarDocumentoWorker {
 			System.out.println("fin worker");
 		
 		}catch (CannotCreateTransactionException | JDBCConnectionException | DataAccessResourceFailureException 
-				|TransientDataAccessResourceException | RecoverableDataAccessException e) {
+				|TransientDataAccessResourceException | BadSqlGrammarException | RecoverableDataAccessException e) {
 			//caida de bdd
 			log.error("BDD no disponible, pausando worker 5 minutos", e);
 			WORKER_DORMIDO = System.currentTimeMillis() + 40000;

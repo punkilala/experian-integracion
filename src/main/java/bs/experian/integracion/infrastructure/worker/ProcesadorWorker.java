@@ -58,7 +58,7 @@ public class ProcesadorWorker {
 	public void descargarContenidoSiEsNecesario (ColaDescargaDocumentosEntity doc) {
 		if (doc.getPdfDocumento() == null) {
 			try {
-	            doc.setTipo(PDF);
+	            doc.setFase(PDF);
 	            byte[] pdf = descargarDocumentoClient.descargar(doc.getPdfUrl(), byte[].class);
 	            doc.setPdfDocumento(pdf);
 	            procesarDocumentosRepository.guardarContenido(doc);
@@ -72,7 +72,7 @@ public class ProcesadorWorker {
         if (doc.getJsonDocumento() == null) {
         	String json = "";
         	try {
-                doc.setTipo(JSON);
+                doc.setFase(JSON);
                 json = descargarDocumentoClient.descargar(doc.getJsonUrl(), String.class);
                 String jsonBonito = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(objectMapper.readTree(json));
                 doc.setJsonDocumento(jsonBonito);
@@ -111,26 +111,41 @@ public class ProcesadorWorker {
 	 */
 	private void notificarDescargaAOrquestador (ColaDescargaDocumentosEntity doc) {
 		
-		boolean resultadoDescarga =  doc.getPdfDocumento() != null && doc.getJsonDocumento() != null;
-		doc.setTipo(REENVIO);
+		boolean hayPdf = doc.getPdfDocumento() != null;
+	    boolean hayJson = doc.getJsonDocumento() != null;
+
+	    boolean resultadoDescarga = hayPdf && hayJson;
+	    
+		doc.setFase(REENVIO);
 		
+		//documento a custodiar
+		if(hayPdf) {
+			procesarDocumentosRepository.pdfToCustodia(doc);
+		}
+		
+		String pdfStatus = hayPdf ? PTE_CUSTODIA : DOC_NO_DESCARGADO;
+		String jsonPayload = hayJson ? doc.getJsonDocumento() : DOC_NO_DESCARGADO;
+		String p="";
 		DescargaDocumentoResponse descargaDocumentoResponse = DescargaDocumentoResponse.builder()
 				.documentCode(doc.getDocumentCode())
 				.status(STATUS_DOCUDMENTO_DESCARGADO)
-				.substatus(resultadoDescarga ? OK : KO)
-				.pdfDocument(doc.getPdfDocumento() != null)
-				.jsonDocument(doc.getJsonDocumento())
+				.substatus(resultadoDescarga ? DESCARGA_COMPLETA : DESCARGA_INCOMPLETA)
+				.pdfDocument(pdfStatus)
+				.jsonDocument(jsonPayload)
 				.build();			
 		
 		JsonNode evenData = objectMapper.valueToTree(descargaDocumentoResponse);
 		
 		ExperianWebhookEvent event = new ExperianWebhookEvent();
 		event.setQueryId(doc.getQueryId());
-		event.setNotificationId("INTEGRACION-" + UUID.randomUUID().toString());
+		event.setNotificationId(doc.getNotificationId());
+		event.setOrigen("INTEGRACION");
 		event.setEventType(TYPE_DOCUDMENTO_DESCARGADO);
 		event.setEventData(evenData);
 		
+		//enviar aviso a orquestador
 		experianEventosClient.reenviarEvento(event);
+		//borrar de la cola de trabajo del worker
 		procesarDocumentosRepository.borrarColaWorker(doc);
 
 	}
@@ -144,8 +159,9 @@ public class ProcesadorWorker {
 		ColaDescargaDocumentosEntity doc = new ColaDescargaDocumentosEntity();
 		doc.setQueryId(UNDEFINED);
 		doc.setDocumentCode(UNDEFINED);
+		doc.setNotificationId(UNDEFINED);
 		doc.setIntentos(0);
-		doc.setTipo(UNDEFINED);
+		doc.setFase(UNDEFINED);
 		
 		procesarDocumentosRepository.registrarErrorDescarga(doc, e);
 	}

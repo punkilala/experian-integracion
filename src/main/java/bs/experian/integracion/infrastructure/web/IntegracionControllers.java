@@ -13,6 +13,7 @@ import bs.experian.integracion.infrastructure.dto.orquestador.DescargaDocumentoR
 import bs.experian.integracion.infrastructure.dto.orquestador.NuevaSolicitudRequest;
 import bs.experian.integracion.infrastructure.dto.orquestador.NuevaSolicitudResponse;
 import bs.experian.integracion.infrastructure.dto.proveedor.ExperianWebhookEvent;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -29,13 +30,7 @@ public class IntegracionControllers {
 	}
 	
 	@PostMapping("/experian/eventos")
-	 public ResponseEntity<Void> webhook(@RequestBody ExperianWebhookEvent request) {
-
-        if (request == null || request.getQueryId() == null || request.getQueryId().isBlank()
-                || request.getEventType() == null || request.getEventType().isBlank()) {
-            return ResponseEntity.badRequest().build();
-        }
-
+	 public ResponseEntity<Void> webhook(@Valid @RequestBody ExperianWebhookEvent request) {
         recepcionEventosService.ejecutar(request);
         
         return ResponseEntity.ok().build();

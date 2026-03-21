@@ -12,8 +12,11 @@ public final class ExperianConstats {
 	 
 	 public static final String TYPE_DOCUDMENTO_DESCARGADO = "DocumentoDescargado";
 	 public static final String STATUS_DOCUDMENTO_DESCARGADO = "documento_descargado";
-	 public static final String OK = "OK";
-	 public static final String KO = "KO";
+	 public static final String DESCARGA_COMPLETA = "DESCARGA_COMPLETA";
+	 public static final String DESCARGA_INCOMPLETA = "DESCARGA_INCOMPLETA";
+	 public static final String DOC_DESCARGADO = "DESCARGADO";
+	 public static final String DOC_NO_DESCARGADO = "NO_DESCARGADO";
+	 public static final String PTE_CUSTODIA = "PTE_CUSTODIA";
 	 public static final String REENVIO = "REENVIO";
 	 public static final String PDF = "PDF";
 	 public static final String JSON = "JSON";

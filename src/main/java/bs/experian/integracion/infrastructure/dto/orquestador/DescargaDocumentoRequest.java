@@ -12,6 +12,7 @@ import lombok.Setter;
 public class DescargaDocumentoRequest {
 	
 	private String queryId;
+	private String notificationId;
 	private String documentCode;
 	private String pdfUrl;
 	private String jsonUrl;

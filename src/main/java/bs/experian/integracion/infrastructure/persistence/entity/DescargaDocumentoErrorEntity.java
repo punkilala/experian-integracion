@@ -30,6 +30,9 @@ public class DescargaDocumentoErrorEntity {
 
     @Column(name = "DOCUMENT_CODE", nullable = false, length = 100)
     private String documentCode;
+    
+    @Column(name = "NOTIFICATION_ID", length = 100, nullable = false)
+	private String notificationId;
 
     @Column(name = "INTENTO", nullable = false)
     private Integer intento;
