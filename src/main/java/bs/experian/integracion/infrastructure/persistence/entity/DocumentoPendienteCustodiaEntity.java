@@ -1,7 +1,5 @@
 package bs.experian.integracion.infrastructure.persistence.entity;
 
-import java.time.OffsetDateTime;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
@@ -14,16 +12,19 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.OffsetDateTime;
+
 @Entity
-@Table(name = "DESCARGA_DOCUMENTOS_ERROR")
-@IdClass(DescargaDocumentoErrorPK.class)
+@Table(name = "DOCUMENTOS_PENDIENTES_CUSTODIA")
+@IdClass(DocumentoPendienteCustodiaPK.class)
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class DescargaDocumentoErrorEntity {
-	@Id
+public class DocumentoPendienteCustodiaEntity {
+
+    @Id
     @Column(name = "QUERY_ID", nullable = false, length = 60)
     private String queryId;
 
@@ -31,23 +32,23 @@ public class DescargaDocumentoErrorEntity {
     @Column(name = "DOCUMENT_CODE", nullable = false, length = 100)
     private String documentCode;
 
-    @Id
-    @Column(name = "TIPO_DOCUMENTO", nullable = false, length = 20)
-    private String tipoDocumento;
-
-    @Column(name = "NOTIFICATION_ID", nullable = false, length = 100)
+    @Column(name = "NOTIFICATION_ID", length = 100)
     private String notificationId;
+
+    @Lob
+    @Column(name = "PDF_DOCUMENT")
+    private byte[] pdfDocument;
+
+    @Lob
+    @Column(name = "JSON_DOCUMENT")
+    private String jsonDocument;
+    
+    @Column(name = "ESTATUS", length = 10)
+    private String estatus;
     
     @Column(name = "INTENTOS", nullable = false)
     private Integer intentos;
 
-    @Column(name = "ORIGEN_ERROR", nullable = false, length = 1000)
-    private String origenError;
-
-    @Lob
-    @Column(name = "MENSAJE_ERROR")
-    private String mensajeError;
-
-    @Column(name = "FECHA_ERROR", nullable = false)
-    private OffsetDateTime fechaError;
+    @Column(name = "FECHA_ALTA", nullable = false)
+    private OffsetDateTime fechaAlta;
 }

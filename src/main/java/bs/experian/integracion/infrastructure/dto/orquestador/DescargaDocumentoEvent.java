@@ -1,6 +1,7 @@
 package bs.experian.integracion.infrastructure.dto.orquestador;
 
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -9,11 +10,12 @@ import lombok.Setter;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-public class DescargaDocumentoRequest {
+@Builder
+public class DescargaDocumentoEvent {
 	
 	private String queryId;
 	private String notificationId;
-	private String documentCode;
-	private String pdfUrl;
-	private String jsonUrl;
+	private String eventType;
+	private DescargaDocumentoEventData eventData;
+	
 }

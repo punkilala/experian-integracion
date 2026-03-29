@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.RestController;
 import bs.experian.integracion.application.CrearSolicitudService;
 import bs.experian.integracion.application.DescargarDocumentosService;
 import bs.experian.integracion.application.RecepcionEventosService;
-import bs.experian.integracion.infrastructure.dto.orquestador.DescargaDocumentoRequest;
+import bs.experian.integracion.infrastructure.dto.orquestador.DescargaDocumentoEvent;
 import bs.experian.integracion.infrastructure.dto.orquestador.NuevaSolicitudRequest;
 import bs.experian.integracion.infrastructure.dto.orquestador.NuevaSolicitudResponse;
 import bs.experian.integracion.infrastructure.dto.proveedor.ExperianWebhookEvent;
@@ -37,7 +37,7 @@ public class IntegracionControllers {
     }
 	
 	@PostMapping("/experian/descarga-documento")
-	public ResponseEntity<Void> descargarDocmento(@RequestBody DescargaDocumentoRequest request){
+	public ResponseEntity<Void> descargarDocmento(@RequestBody DescargaDocumentoEvent request){
 		descargarDocumentosService.descargarDocumento(request);
 		return ResponseEntity.ok().build();
 		

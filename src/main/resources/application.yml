@@ -12,3 +12,9 @@ spring:
 server:
   port: 6001
   
+app:
+  kafka:
+    topics:
+      webhook-events: experian.webhook.events
+      descarga-orden: documento.descarga.orden
+      descarga-resultado: documento.descarga.resultado

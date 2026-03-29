@@ -1,7 +1,5 @@
 package bs.experian.integracion.domain.model;
 
-import java.time.OffsetDateTime;
-
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -17,15 +15,17 @@ public class DescargaDocumentoModel {
 	private String notificationId;
 	
 	private String pdfUrl;
-	private byte[] pdfDocumento;
+	private byte[] pdfDocument;
 	
 	private String jsonUrl;
-	private String jsonDocumento;
+	private String jsonDocument;
+	
+	private Integer intentos;
 	
 	private String tipoDocumento;
+	
+	private String origenError;
 	private String errorMensaje;
 	
-	private int intentos;
-	private OffsetDateTime siguienteReintento;
 		
 }

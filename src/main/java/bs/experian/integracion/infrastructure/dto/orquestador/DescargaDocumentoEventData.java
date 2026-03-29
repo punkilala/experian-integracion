@@ -9,12 +9,12 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class DescargaDocumentoResponse {
+public class DescargaDocumentoEventData {
     private String status;
     private String substatus;
     private String documentCode;
 
-    private String pdfDocument;
-    private String jsonDocument;
+    private String pdfEstado;
+    private String jsonEstado;
 
 }
