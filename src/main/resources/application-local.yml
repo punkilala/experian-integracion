@@ -9,29 +9,23 @@ spring:
     bootstrap-servers: localhost:9092   # si corre en Docker
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.apache.kafka.common.serialization.StringSerializer      
-      # Idempotencia (evita duplicados)
-      enable.idempotence: true
-      # Acks fuertes: el broker confirma cuando TODOS los replicas escriben
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
       acks: all
-      # Retries automáticos
-      retries: 5
-      # Timeout total de entrega
-      delivery.timeout.ms: 120000
-      # Timeout por request
-      request.timeout.ms: 30000
-      # Compresión (reduce tamaño y coste)
-      compression.type: snappy
-      # Batch para mejorar rendimiento
-      linger.ms: 5
-      batch.size: 32768
+      properties:
+        enable.idempotence: true
+        delivery.timeout.ms: 120000
+        request.timeout.ms: 30000
     consumer:
-      group-id: integracion-experian
+      group-id: orquestador-experian
       auto-offset-reset: earliest
+      enable-auto-commit: false
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       properties:
-        spring.json.trusted.packages: "*"
+        max.poll.interval.ms: 900000
+
+    listener:
+      ack-mode: manual_immediate
     
   jpa:
     show-sql: true

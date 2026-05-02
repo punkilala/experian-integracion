@@ -6,6 +6,7 @@ import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.annotation.RetryableTopic;
 import org.springframework.kafka.retrytopic.DltStrategy;
 import org.springframework.kafka.retrytopic.RetryTopicHeaders;
+import org.springframework.kafka.support.Acknowledgment;
 import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.retry.annotation.Backoff;
@@ -40,11 +41,13 @@ public class KafkaConsumeDescargaDocumentos {
             groupId = "${spring.kafka.consumer.group-id}"
     )
     public void listener(String mensaje,
-            @Header(name = KafkaHeaders.RECEIVED_KEY, required = false) String queryId) throws JsonProcessingException{
+            @Header(name = KafkaHeaders.RECEIVED_KEY, required = false) String queryId,
+            Acknowledgment ack){
 		
 		try {
 			DescargaDocumentoModel documento = objectMapper.readValue(mensaje, DescargaDocumentoModel.class);
 			procesadorDescargaDocumentos.procesar(documento);
+			ack.acknowledge();
 
 		} catch ( KafkaException e) {
 	        log.error("Error Kafka procesando evento Experian", e);
