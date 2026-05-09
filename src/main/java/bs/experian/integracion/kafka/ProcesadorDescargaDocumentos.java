@@ -1,6 +1,5 @@
 package bs.experian.integracion.kafka;
 
-import java.util.UUID;
 
 import org.springframework.stereotype.Component;
 

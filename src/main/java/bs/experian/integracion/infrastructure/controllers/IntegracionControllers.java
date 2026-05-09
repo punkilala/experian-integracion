@@ -1,4 +1,4 @@
-package bs.experian.integracion.infrastructure.web;
+package bs.experian.integracion.infrastructure.controllers;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RestController;
 import bs.experian.integracion.application.CrearSolicitudService;
 import bs.experian.integracion.application.DescargarDocumentosService;
 import bs.experian.integracion.application.RecepcionEventosService;
+import bs.experian.integracion.application.avro.RecepcionEventosAvroService;
 import bs.experian.integracion.infrastructure.dto.orquestador.DescargaDocumentoEvent;
 import bs.experian.integracion.infrastructure.dto.orquestador.NuevaSolicitudRequest;
 import bs.experian.integracion.infrastructure.dto.orquestador.NuevaSolicitudResponse;
@@ -23,6 +24,7 @@ public class IntegracionControllers {
 	private final CrearSolicitudService crearSolicitudService;
 	private final RecepcionEventosService recepcionEventosService;
 	private final DescargarDocumentosService descargarDocumentosService;
+	private final RecepcionEventosAvroService recepcionEventosAvroService;
 	
 	@PostMapping("/experian/solicitudes")
 	public ResponseEntity<NuevaSolicitudResponse> crearSolicitud (@RequestBody NuevaSolicitudRequest nuevaSolicitudRequest){
@@ -35,6 +37,13 @@ public class IntegracionControllers {
         
         return ResponseEntity.ok().build();
     }
+	
+	@PostMapping("/experian/eventos/avro")
+	 public ResponseEntity<Void> webhookAvro(@Valid @RequestBody ExperianWebhookEvent request) {
+		recepcionEventosAvroService.publicarnEvento(request);
+       
+       return ResponseEntity.ok().build();
+   }
 	
 	@PostMapping("/experian/descarga-documento")
 	public ResponseEntity<Void> descargarDocmento(@RequestBody DescargaDocumentoEvent request){

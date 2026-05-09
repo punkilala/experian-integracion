@@ -14,8 +14,6 @@ public class ExperianWebhookEvent {
 	@NotBlank (message = "campo requerido")
     private String notificationId;
 	
-    private String origen;
-    
     @NotBlank (message = "campo requerido")
     private String eventType;
     
