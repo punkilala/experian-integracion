@@ -69,7 +69,7 @@ public class KafkaProduceExperianEventAvro {
 		} catch (JsonProcessingException e) {
 			throw new AgoraException(
 		            HttpStatus.INTERNAL_SERVER_ERROR.value(),
-		            "ERR timeout Kafka publicando evento Experian",
+		            "ERR Json Kafka publicando evento Experian",
 		            null);
 		}
 		

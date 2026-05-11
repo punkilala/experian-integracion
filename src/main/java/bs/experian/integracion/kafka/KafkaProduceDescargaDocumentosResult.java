@@ -41,7 +41,7 @@ public class KafkaProduceDescargaDocumentosResult {
 			DescargaDocumentoEvent event = DescargaDocumentoEvent.builder()
 					.queryId(model.getQueryId())
 					.notificationId(model.getNotificationId())
-					.eventType("DocumentoDescargado")
+					.eventType("DescargaDocumentoResult")
 					.eventData(
 							DescargaDocumentoEventData.builder()
 								.status("documento_descargado")
